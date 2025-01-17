@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LeituraBrasil - Lendo Livro</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.15.349/pdf.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: row;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(to bottom, #eff6ff, #ffffff);
+    }
+
+    #pdfContainer {
+      flex: 3;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #controls {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      gap: 15px;
+      padding: 15px;
+      background-color: #2563eb;
+      color: #ffffff;
+      border-bottom: 2px solid #1f2937;
+      flex-wrap: wrap;
+      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    #controls button, #controls input {
+      background-color: #1d4ed8;
+      color: #ffffff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    #controls button:hover, #controls input:hover {
+      background-color: #2563eb;
+    }
+
+    #controls input {
+      width: 150px;
+    }
+
+    canvas {
+      margin: 20px auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      display: block;
+      max-width: 90%;
+    }
+
+    #annotationsWrapper {
+      position: fixed;
+      bottom: 0;
+      right: 0;
+      width: 300px;
+      height: 100%;
+      background: #ffffff;
+      border-left: 1px solid #e5e7eb;
+      box-shadow: -4px 0 8px rgba(0, 0, 0, 0.05);
+      overflow-y: auto;
+      padding: 20px;
+      display: none;
+      z-index: 1000;
+    }
+
+    #annotationsWrapper h5 {
+      margin-bottom: 15px;
+      font-size: 18px;
+      font-weight: 500;
+      color: #111827;
+    }
+
+    .annotation {
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 5px;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 14px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .delete-btn {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .delete-btn:hover {
+      background: #c0392b;
+    }
+
+    .add-note-btn {
+      margin-top: 10px;
+      width: 100%;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 25px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .add-note-btn:hover {
+      background-color: #1d4ed8;
+    }
+
+    textarea {
+      border: 1px solid #e5e7eb;
+      border-radius: 5px;
+      padding: 10px;
+      font-size: 14px;
+      width: 100%;
+    }
+
+    textarea:focus {
+      border-color: #2563eb;
+      outline: none;
+      box-shadow: 0 0 3px rgba(37, 99, 235, 0.5);
+    }
+
+    #toggleAnnotations {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      padding: 15px;
+      cursor: pointer;
+      font-size: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s ease;
+      z-index: 1000;
+    }
+
+    #toggleAnnotations:hover {
+      background-color: #1d4ed8;
+    }
+
+
+    /* Responsividade para dispositivos móveis */
+    @media (max-width: 768px) {
+      body, html {
+        flex-direction: column;
+      }
+
+      #controls {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+      }
+
+      #controls button, #controls input {
+        width: 100%;
+        max-width: 300px;
+        font-size: 12px;
+      }
+
+      canvas {
+        max-width: 100%;
+        margin: 10px auto;
+      }
+
+      #annotationsWrapper {
+        width: 100%;
+        height: auto;
+        max-height: 300px;
+        position: static;
+        border-left: none;
+        border-top: 2px solid #e5e7eb;
+      }
+
+      #toggleAnnotations {
+        bottom: 10px;
+        right: 10px;
+        padding: 10px;
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="pdfContainer">
+    <div id="controls">
+      <button id="prevPage">Página Anterior</button>
+      <span id="pageInfo">Página <span id="pageNum">1</span> de <span id="pageCount">0</span></span>
+      <button id="nextPage">Próxima Página</button>
+      <input type="number" id="pageInput" placeholder="Número da página" min="1">
+      <button id="goToPage">Ir</button>
+      <input type="text" id="searchInput" placeholder="Pesquisar texto">
+      <button id="searchText">Buscar</button>
+      <button id="zoomIn">Zoom In (+)</button>
+      <button id="zoomOut">Zoom Out (-)</button>
+    </div>
+
+    <canvas id="pdfViewer"></canvas>
+  </div>
+
+  <!-- Painel de Anotações -->
+  <div id="annotationsWrapper">
+    <h5>Minhas Anotações</h5>
+    <div id="annotationsList"></div>
+    <textarea id="notesTextarea" class="form-control" rows="4" placeholder="Escreva suas anotações aqui..."></textarea>
+    <button id="saveNotesBtn" class="add-note-btn">Salvar Anotação</button>
+    <button id="closeAnnotations" class="add-note-btn" style="background-color: #6c757d;">Fechar Anotações</button>
+  </div>
+
+  <!-- Botão para alternar anotações -->
+  <button id="toggleAnnotations">📝</button>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const fileName = urlParams.get('file');
+
+    const pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.15.349/pdf.worker.min.js";
+
+    const canvas = document.getElementById('pdfViewer');
+    const ctx = canvas.getContext('2d');
+    const prevPageBtn = document.getElementById('prevPage');
+    const nextPageBtn = document.getElementById('nextPage');
+    const zoomInBtn = document.getElementById('zoomIn');
+    const zoomOutBtn = document.getElementById('zoomOut');
+    const pageNumEl = document.getElementById('pageNum');
+    const pageCountEl = document.getElementById('pageCount');
+    const pageInput = document.getElementById('pageInput');
+    const goToPageBtn = document.getElementById('goToPage');
+    const searchInput = document.getElementById('searchInput');
+    const searchTextBtn = document.getElementById('searchText');
+    const annotationsList = document.getElementById('annotationsList');
+    const saveNotesBtn = document.getElementById('saveNotesBtn');
+    const notesTextarea = document.getElementById('notesTextarea');
+
+    let pdfDoc = null;
+    let pageNum = 1;
+    let scale = 1.5;
+    let annotations = JSON.parse(localStorage.getItem('annotations')) || [];
+
+    async function loadPdf() {
+      try {
+        const fileUrl = `https://ihryaeaalvxtimxrjdlo.supabase.co/storage/v1/object/public/uploads/public/${fileName}`;
+        const response = await fetch(fileUrl);
+
+        if (!response.ok) {
+          throw new Error(`Erro ao baixar o PDF: ${response.statusText}`);
+        }
+
+        const fileBlob = await response.blob();
+        const blobUrl = URL.createObjectURL(fileBlob);
+
+        pdfDoc = await pdfjsLib.getDocument(blobUrl).promise;
+        pageCountEl.textContent = pdfDoc.numPages;
+
+        renderPage(pageNum);
+      } catch (error) {
+        console.error("Erro ao carregar o PDF:", error.message);
+        document.body.innerHTML = `<h3 style="text-align: center;">Erro ao carregar o PDF: ${error.message}</h3>`;
+      }
+    }
+
+    function renderPage(num) {
+      pdfDoc.getPage(num).then((page) => {
+        const viewport = page.getViewport({ scale });
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderContext = {
+          canvasContext: ctx,
+          viewport,
+        };
+
+        page.render(renderContext).promise.then(() => {
+          pageNumEl.textContent = num;
+        });
+      });
+    }
+
+    prevPageBtn.addEventListener('click', () => {
+      if (pageNum <= 1) return;
+      pageNum--;
+      renderPage(pageNum);
+    });
+
+    nextPageBtn.addEventListener('click', () => {
+      if (pageNum >= pdfDoc.numPages) return;
+      pageNum++;
+      renderPage(pageNum);
+    });
+
+    zoomInBtn.addEventListener('click', () => {
+      scale += 0.2;
+      renderPage(pageNum);
+    });
+
+    zoomOutBtn.addEventListener('click', () => {
+      if (scale > 0.6) {
+        scale -= 0.2;
+        renderPage(pageNum);
+      }
+    });
+
+    goToPageBtn.addEventListener('click', () => {
+      const page = parseInt(pageInput.value, 10);
+      if (page >= 1 && page <= pdfDoc.numPages) {
+        pageNum = page;
+        renderPage(pageNum);
+      } else {
+        alert("Número de página inválido!");
+      }
+    });
+
+    searchTextBtn.addEventListener('click', async () => {
+      const searchText = searchInput.value.trim();
+      if (!searchText) {
+        alert("Digite algo para pesquisar!");
+        return;
+      }
+
+      for (let i = 1; i <= pdfDoc.numPages; i++) {
+        const page = await pdfDoc.getPage(i);
+        const textContent = await page.getTextContent();
+
+        const found = textContent.items.some((item) =>
+          item.str.toLowerCase().includes(searchText.toLowerCase())
+        );
+
+        if (found) {
+          pageNum = i;
+          renderPage(pageNum);
+          alert(`Texto encontrado na página ${i}`);
+          return;
+        }
+      }
+
+      alert("Texto não encontrado no documento.");
+    });
+
+    function renderAnnotations() {
+      annotationsList.innerHTML = '';
+      annotations.forEach((note, index) => {
+        const noteDiv = document.createElement('div');
+        noteDiv.className = 'annotation';
+        noteDiv.innerHTML = `
+          <span>${index + 1}. ${note}</span>
+          <button class="delete-btn" data-index="${index}">Excluir</button>
+        `;
+        annotationsList.appendChild(noteDiv);
+      });
+
+      document.querySelectorAll('.delete-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+          const index = e.target.getAttribute('data-index');
+          annotations.splice(index, 1);
+          localStorage.setItem('annotations', JSON.stringify(annotations));
+          renderAnnotations();
+        });
+      });
+    }
+
+    saveNotesBtn.addEventListener('click', () => {
+      const note = notesTextarea.value.trim();
+      if (note) {
+        annotations.push(note);
+        localStorage.setItem('annotations', JSON.stringify(annotations));
+        renderAnnotations();
+        notesTextarea.value = '';
+      }
+    });
+
+    renderAnnotations();
+    loadPdf();
+
+    const toggleAnnotationsBtn = document.getElementById('toggleAnnotations');
+    const annotationsWrapper = document.getElementById('annotationsWrapper');
+    const closeAnnotationsBtn = document.getElementById('closeAnnotations');
+
+    toggleAnnotationsBtn.addEventListener('click', () => {
+      if (annotationsWrapper.style.display === 'none' || !annotationsWrapper.style.display) {
+        annotationsWrapper.style.display = 'block';
+      } else {
+        annotationsWrapper.style.display = 'none';
+      }
+    });
+
+    closeAnnotationsBtn.addEventListener('click', () => {
+      annotationsWrapper.style.display = 'none';
+    });
+  </script>
+</body>
+</html>

@@ -30,13 +30,6 @@ async function logout() {
   }
 }
 
-// Capturar clique no botão de logout
-document.getElementById("logoutButton").addEventListener("click", () => {
-  console.log("Botão de logout clicado");
-  logout();
-});
-
-
 // Função para mostrar o spinner de carregamento
 function showLoadingSpinner() {
   const spinner = document.getElementById("loadingSpinner");
@@ -50,42 +43,6 @@ function hideLoadingSpinner() {
 }
 
 // Função para fazer upload de arquivos
-// export async function uploadFile() {
-//   const fileInput = document.getElementById("fileInput");
-//   const file = fileInput.files[0];
-
-//   if (!file) {
-//     alert("Selecione um arquivo!");
-//     return;
-//   }
-
-//   showLoadingSpinner(); // Mostra o spinner de carregamento
-
-//   try {
-//     const { data, error } = await supabase.storage
-//       .from("uploads")
-//       .upload(`public/${file.name}`, file);
-
-//     if (error) throw error;
-
-//     // Exibe o modal de sucesso
-//     const successModal = document.getElementById("successModal");
-//     successModal.classList.add("active");
-
-
-
-
-
-//     // Redireciona para a página de listagem
-//     window.location.href = "listagem.html";
-//   } catch (error) {
-//     console.error("Erro no upload:", error.message);
-//     alert("Erro no upload: " + error.message);
-//   } finally {
-//     hideLoadingSpinner(); // Esconde o spinner de carregamento
-//   }
-// }
-
 export async function uploadFile() {
   const fileInput = document.getElementById("fileInput");
   const file = fileInput.files[0];
@@ -107,6 +64,10 @@ export async function uploadFile() {
     // Exibe o modal de sucesso
     const successModal = document.getElementById("successModal");
     successModal.classList.add("active");
+
+    // Controle o redirecionamento para a página de listagem aqui
+    console.log("Upload concluído. Redirecionamento manual necessário se aplicável.");
+    window.location.href = "listagem.html"; // Descomente se o redirecionamento for necessário
   } catch (error) {
     console.error("Erro no upload:", error.message);
     alert("Erro no upload: " + error.message);
@@ -115,12 +76,11 @@ export async function uploadFile() {
   }
 }
 
-
+// Função para fechar o modal
 function closeModal(modalId) {
   const modal = document.getElementById(modalId);
   modal.classList.remove("active");
 }
-
 
 // Capturar clique no botão de logout
 document.getElementById("logoutButton").addEventListener("click", () => {
